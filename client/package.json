@@ -1,21 +1,21 @@
 {
-  "name": "hotel-reservation-system",
+  "name": "stayease-client",
   "version": "1.0.0",
-  "private": true,
-  "description": "StayEase - Hotel Reservation and Management System (React + Express + MySQL)",
+  "type": "module",
   "scripts": {
-    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
-    "dev": "concurrently -n server,client -c blue,green \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
-    "dev:server": "npm --prefix server run dev",
-    "dev:client": "npm --prefix client run dev",
-    "build": "npm run install:all && npm --prefix client run build",
-    "start": "npm --prefix server run start",
-    "start:prod": "npm run build && npm run start",
-    "db:setup": "npm --prefix server run db:setup",
-    "db:reset": "npm --prefix server run db:reset"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "axios": "^1.6.0",
+    "lucide-react": "^0.292.0"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
-  },
-  "engines": { "node": ">=18.17" }
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.8"
+  }
 }
