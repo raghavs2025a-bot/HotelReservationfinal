@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// In development the API is proxied so the HTTP-only auth cookie stays same-origin.
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -9,5 +8,8 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://localhost:5000', changeOrigin: true },
     },
+  },
+  preview: {
+    allowedHosts: ['prolific-simplicity-production-43bd.up.railway.app'],
   },
 });
