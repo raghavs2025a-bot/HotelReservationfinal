@@ -15,7 +15,7 @@ import { calculatePrice } from '../src/services/pricing.service.js';
 import { addDays, todayStr } from '../src/utils/dates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbDir = path.resolve(__dirname, '../../database');
+const dbDir = path.resolve(__dirname, '../database');
 const DB = config.db.database;
 const reset = process.argv.includes('--reset');
 
