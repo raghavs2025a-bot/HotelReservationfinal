@@ -14,7 +14,7 @@ export const authService = {
 export const roomService = {
   list: (params) => data(api.get('/rooms', { params })),
   featured: () => data(api.get('/rooms/featured')),
-  meta: () => data(api.get('/rooms/meta')),
+  meta: (params) => data(api.get('/rooms/meta', { params })),
   testimonials: () => data(api.get('/rooms/testimonials')),
   get: (id) => data(api.get(`/rooms/${id}`)),
 };
@@ -34,6 +34,7 @@ export const adminService = {
   createRoom: (body) => data(api.post('/admin/rooms', body)),
   updateRoom: (id, body) => data(api.put(`/admin/rooms/${id}`, body)),
   setRoomActive: (id, isActive) => data(api.patch(`/admin/rooms/${id}/active`, { isActive })),
+  hotels: () => data(api.get('/admin/hotels')),
   roomTypes: () => data(api.get('/admin/room-types')),
   createRoomType: (body) => data(api.post('/admin/room-types', body)),
   updateRoomType: (id, body) => data(api.put(`/admin/room-types/${id}`, body)),

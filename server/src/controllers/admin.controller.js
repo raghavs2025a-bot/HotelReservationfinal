@@ -25,6 +25,8 @@ export const report = asyncHandler(async (req, res) => {
 async function parseRoomPayload(b) {
   const errors = {};
   const roomNumber = cleanText(b.roomNumber, 10);
+  const hotelId = Number(b.hotelId);
+  if (!Number.isInteger(hotelId) || !(await Room.hotelExists(hotelId))) errors.hotelId = 'Choose a hotel.';
   const name = cleanText(b.name, 120);
   if (!roomNumber) errors.roomNumber = 'Room number is required.';
   if (name.length < 3) errors.name = 'Room name must be at least 3 characters.';
@@ -48,7 +50,7 @@ async function parseRoomPayload(b) {
   const amenityIds = await Room.validAmenityIds([...new Set((Array.isArray(b.amenityIds) ? b.amenityIds : []).map(Number).filter((n) => Number.isInteger(n) && n > 0))]);
   if (Object.keys(errors).length) throw new AppError(400, 'Please correct the highlighted fields.', errors);
   return {
-    roomNumber, name, roomTypeId, description: cleanText(b.description, 2000) || null, pricePerNight, capacity, bedType, sizeSqft, floorNo,
+    hotelId, roomNumber, name, roomTypeId, description: cleanText(b.description, 2000) || null, pricePerNight, capacity, bedType, sizeSqft, floorNo,
     imageUrl: imageUrl || gallery[0] || null, gallery: imageUrl ? [imageUrl, ...gallery.filter((g) => g !== imageUrl)] : gallery,
     operationalStatus, isFeatured: Boolean(b.isFeatured), isActive: b.isActive !== false, amenityIds,
   };
@@ -60,13 +62,20 @@ async function assertCanDeactivate(roomId) {
 }
 
 export const listRooms = asyncHandler(async (req, res) => {
-  const rooms = await Room.adminListRooms({ search: cleanText(req.query.search, 80), typeId: optNum(req.query.type), status: req.query.status });
+  const rooms = await Room.adminListRooms({ search: cleanText(req.query.search, 80), typeId: optNum(req.query.type), status: req.query.status, hotelId: optNum(req.query.hotel) });
   res.json({ success: true, rooms });
 });
 
+const duplicateRoomNumber = (err) => {
+  if (err.code === 'ER_DUP_ENTRY') throw new AppError(409, 'This hotel already has a room with that number.', { roomNumber: 'Room number already used in this hotel.' });
+  throw err;
+};
+
+export const listHotels = asyncHandler(async (_req, res) => res.json({ success: true, hotels: await Room.listHotels() }));
+
 export const createRoom = asyncHandler(async (req, res) => {
   const data = await parseRoomPayload(req.body);
-  const id = await withTransaction((conn) => Room.createRoom(conn, data));
+  const id = await withTransaction((conn) => Room.createRoom(conn, data)).catch(duplicateRoomNumber);
   res.status(201).json({ success: true, message: 'Room created.', room: await Room.getRoomById(id, { includeInactive: true }) });
 });
 
@@ -75,7 +84,7 @@ export const updateRoom = asyncHandler(async (req, res) => {
   if (!(await Room.getRoomById(id, { includeInactive: true }))) throw new AppError(404, 'Room not found.');
   const data = await parseRoomPayload(req.body);
   if (!data.isActive) await assertCanDeactivate(id);
-  await withTransaction((conn) => Room.updateRoom(conn, id, data));
+  await withTransaction((conn) => Room.updateRoom(conn, id, data)).catch(duplicateRoomNumber);
   res.json({ success: true, message: 'Room updated.', room: await Room.getRoomById(id, { includeInactive: true }) });
 });
 

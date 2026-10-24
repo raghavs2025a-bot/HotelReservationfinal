@@ -78,7 +78,7 @@ export default function AdminReservations() {
                 <tr key={b.id}>
                   <td data-label="Reference"><strong>{b.reference}</strong></td>
                   <td data-label="Guest">{b.guest_name}<small>{b.guest_email}</small></td>
-                  <td data-label="Room">{b.room_name}<small>#{b.room_number}</small></td>
+                  <td data-label="Room">Room {b.room_number}<small>{b.hotel_name}, {b.hotel_city}</small></td>
                   <td data-label="Stay">{formatDate(b.check_in)} &rarr; {formatDate(b.check_out)}<small>{b.nights} nights</small></td>
                   <td data-label="Total">{formatINRPrecise(b.total_amount)}</td>
                   <td data-label="Status"><div className="badge-stack"><StatusBadge status={b.status} />{b.status !== 'cancelled' && <StatusBadge status={b.stay_status} />}</div></td>
@@ -98,7 +98,8 @@ export default function AdminReservations() {
             <div><dt>Email</dt><dd>{view.guest_email}</dd></div>
             <div><dt>Phone</dt><dd>{view.guest_phone}</dd></div>
             <div><dt>Account</dt><dd>{view.customer_name}</dd></div>
-            <div><dt>Room</dt><dd>{view.room_name} (#{view.room_number}) &middot; {view.category}</dd></div>
+            <div><dt>Hotel</dt><dd>{view.hotel_name}, {view.hotel_city}</dd></div>
+            <div><dt>Room</dt><dd>Room {view.room_number} &middot; {view.room_name} &middot; {view.category}</dd></div>
             <div><dt>Guests</dt><dd>{view.guests}</dd></div>
             <div><dt>Check-in</dt><dd>{formatDate(view.check_in)}</dd></div>
             <div><dt>Check-out</dt><dd>{formatDate(view.check_out)}</dd></div>

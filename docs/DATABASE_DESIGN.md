@@ -6,6 +6,10 @@ Engine: MySQL 8.0.16+ (InnoDB, utf8mb4). Files: `database/schema.sql`, `database
 
 ```
 users 1---* bookings *---1 rooms *---1 room_types
+                              *
+                              |
+                              1
+                            hotels (each hotel is in one city)
                 |              |
                 1              *---* amenities   (via room_amenities)
                 |              |
@@ -23,8 +27,11 @@ users 1---* bookings *---1 rooms *---1 room_types
 ### amenities
 `id` PK, `name` (UNIQUE), `icon` (Lucide icon name used by the UI).
 
+### hotels
+`id` PK, `name`, `city`, `country`, `address`, `star_rating` (1-5), `description`, `image_url`. UNIQUE (`city`, `name`). 36 hotels: 3 in each of 12 cities.
+
 ### rooms
-`id` PK, `room_number` (UNIQUE), `name`, `room_type_id` FK -> room_types (RESTRICT), `description`, `price_per_night` DECIMAL(10,2) CHECK > 0, `capacity` CHECK 1-10, `bed_type`, `size_sqft`, `floor_no`, `image_url`, `gallery` JSON (array of URLs), `operational_status` ENUM(available, maintenance), `is_featured`, `is_active`, timestamps. Indexes: type, price, (`is_active`, `operational_status`).
+`id` PK, `hotel_id` FK -> hotels (RESTRICT), `room_number` (UNIQUE together with `hotel_id`, so room 101 can exist in many hotels but only once per hotel), `name`, `room_type_id` FK -> room_types (RESTRICT), `description`, `price_per_night` DECIMAL(10,2) CHECK > 0, `capacity` CHECK 1-10, `bed_type`, `size_sqft`, `floor_no`, `image_url`, `gallery` JSON (array of URLs), `operational_status` ENUM(available, maintenance), `is_featured`, `is_active`, timestamps. Indexes: type, price, (`is_active`, `operational_status`).
 
 ### room_amenities
 Composite PK (`room_id`, `amenity_id`), both FKs with ON DELETE CASCADE.
@@ -51,7 +58,9 @@ Two stays overlap when `existing.check_in < new.check_out AND existing.check_out
 5. Insert the booking (retrying on the unlikely reference collision) and the payment
 6. `COMMIT` (any failure triggers `ROLLBACK`)
 
+**Second line of defence (database trigger).** `database/triggers.sql` adds `BEFORE INSERT` and `BEFORE UPDATE` triggers on `bookings` that `SIGNAL` an error if the same room already has a pending/confirmed booking with overlapping dates, so even a direct SQL insert cannot double-book a room. The view `v_room_bookings` lists every booking with city, hotel and room number.
+
 Cancellations and admin status changes lock the booking row (`FOR UPDATE`) before changing it.
 
 ## Seed data
-`seed.sql` loads 12 amenities, 5 room types, 12 rooms (Standard, Deluxe, Suite, Family, Presidential; INR 3,000 to 24,000) with amenity links, and 4 featured reviews. `npm run db:setup` additionally creates the demo admin and customer (bcrypt hashes generated at setup time) and five sample reservations for the demo customer (completed, confirmed, pending and cancelled).
+`seed.sql` loads 12 amenities, 5 room types, 12 cities with 3 hotels each (36 hotels), 8 rooms per hotel (288 rooms: Standard, Deluxe, Suite, Family, Presidential) with amenity links, and 4 featured reviews. Prices depend on the city, the hotel category (budget / mid / luxury) and the room type, so every city has its own price range (for example Bali from INR 2,400, New York from INR 5,150 per night). `npm run db:setup` additionally creates the demo admin and customer (bcrypt hashes generated at setup time) and five sample reservations for the demo customer (completed, confirmed, pending and cancelled).

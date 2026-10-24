@@ -38,12 +38,29 @@ CREATE TABLE IF NOT EXISTS room_types (
   UNIQUE KEY uq_room_types_name (name)
 ) ENGINE=InnoDB;
 
+-- One row per physical hotel. Every hotel belongs to exactly one city, so each city has its own hotels.
+CREATE TABLE IF NOT EXISTS hotels (
+  id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name        VARCHAR(120) NOT NULL,
+  city        VARCHAR(80)  NOT NULL,
+  country     VARCHAR(80)  NOT NULL,
+  address     VARCHAR(255) NULL,
+  star_rating TINYINT UNSIGNED NOT NULL DEFAULT 4,
+  description VARCHAR(500) NULL,
+  image_url   VARCHAR(500) NULL,
+  created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_hotels_city_name (city, name),
+  KEY idx_hotels_city (city),
+  CONSTRAINT chk_hotels_star CHECK (star_rating BETWEEN 1 AND 5)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS rooms (
   id                 INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  hotel_id           INT UNSIGNED NOT NULL,
   room_number        VARCHAR(10) NOT NULL,
   name               VARCHAR(120) NOT NULL,
   room_type_id       INT UNSIGNED NOT NULL,
-    location           VARCHAR(80) NOT NULL DEFAULT 'Chennai',
   description        TEXT NULL,
   price_per_night    DECIMAL(10,2) NOT NULL,
   capacity           TINYINT UNSIGNED NOT NULL,
@@ -58,10 +75,12 @@ CREATE TABLE IF NOT EXISTS rooms (
   created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_rooms_number (room_number),
+  UNIQUE KEY uq_rooms_hotel_number (hotel_id, room_number),
+  KEY idx_rooms_hotel (hotel_id),
   KEY idx_rooms_type (room_type_id),
   KEY idx_rooms_price (price_per_night),
   KEY idx_rooms_active (is_active, operational_status),
+  CONSTRAINT fk_rooms_hotel FOREIGN KEY (hotel_id) REFERENCES hotels (id) ON DELETE RESTRICT,
   CONSTRAINT fk_rooms_type FOREIGN KEY (room_type_id) REFERENCES room_types (id) ON DELETE RESTRICT,
   CONSTRAINT chk_rooms_price CHECK (price_per_night > 0),
   CONSTRAINT chk_rooms_capacity CHECK (capacity BETWEEN 1 AND 10)

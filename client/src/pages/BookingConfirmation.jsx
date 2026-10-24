@@ -29,6 +29,7 @@ export default function BookingConfirmation() {
         <h1>{confirmed ? 'Your booking is confirmed' : 'Reservation received'}</h1>
         <p>{confirmed ? 'A confirmation has been saved to your account.' : 'Your reservation is pending. The hotel will confirm it shortly.'}</p>
         <div className="reference"><span>Booking reference</span><strong>{b.reference}</strong></div>
+        <div className="reference room-booked"><span>Room booked</span><strong>Room {b.room_number}</strong><span>{b.hotel_name}, {b.hotel_city}{b.floor_no !== null && b.floor_no !== undefined ? ` · Floor ${b.floor_no}` : ''}</span></div>
       </div>
 
       <div className="confirm-grid">
@@ -37,6 +38,9 @@ export default function BookingConfirmation() {
           <h2 className="h3">{b.room_name} <small className="muted">#{b.room_number}</small></h2>
           <p className="muted">{b.category}</p>
           <dl className="summary-list">
+            <div><dt>Hotel</dt><dd>{b.hotel_name}</dd></div>
+            <div><dt>City</dt><dd>{b.hotel_city}, {b.hotel_country}{b.hotel_address && <small className="muted"> &middot; {b.hotel_address}</small>}</dd></div>
+            <div><dt>Room number</dt><dd><strong>Room {b.room_number}</strong>{b.floor_no !== null && b.floor_no !== undefined && <> &middot; Floor {b.floor_no}</>}</dd></div>
             <div><dt>Check-in</dt><dd>{formatDateLong(b.check_in)} (from 2:00 PM)</dd></div>
             <div><dt>Check-out</dt><dd>{formatDateLong(b.check_out)} (by 12:00 PM)</dd></div>
             <div><dt>Nights</dt><dd>{b.nights}</dd></div>

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { BedDouble, Maximize2, Users } from 'lucide-react';
+import { BedDouble, MapPin, Maximize2, Users } from 'lucide-react';
 import SmartImage from './SmartImage.jsx';
 import AmenityIcon from './AmenityIcon.jsx';
 import { formatINR } from '../utils/format.js';
@@ -17,10 +17,12 @@ export default function RoomCard({ room, search }) {
       <Link to={to} className="room-card-media" aria-label={`View ${room.name}`}>
         <SmartImage src={room.image_url} alt={room.name} />
         <span className="chip chip-gold">{room.category}</span>
+        <span className="chip chip-dark room-card-no">Room {room.room_number}</span>
         {!available && <span className="chip chip-dark room-card-sold">{room.operational_status === 'maintenance' ? 'Unavailable' : 'Booked for your dates'}</span>}
       </Link>
       <div className="room-card-body">
         <h3><Link to={to}>{room.name}</Link></h3>
+        <p className="room-hotel"><MapPin size={14} aria-hidden="true" /> <strong>{room.hotel_name}</strong>, {room.city} &middot; Room {room.room_number}, floor {room.floor_no}</p>
         <ul className="room-meta">
           <li><Users size={15} aria-hidden="true" /> Up to {room.capacity} guests</li>
           <li><BedDouble size={15} aria-hidden="true" /> {room.bed_type}</li>

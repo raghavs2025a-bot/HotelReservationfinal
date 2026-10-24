@@ -28,8 +28,12 @@ A full-stack hotel booking platform: a premium customer website (browse, search,
 - Customers: search, activate/deactivate, full booking history
 - Reports for any date range (up to 366 days): bookings by status, daily revenue, daily occupancy, top rooms
 
+**Hotels, cities and rooms**
+- 12 cities, 3 hotels per city, 8 individually numbered rooms per hotel. Choosing a city shows only that city's hotels, with that city's prices.
+- After a booking, the confirmation page, My bookings and the admin panel all show the booked **hotel, city and room number (and floor)**.
+
 **Business rules**
-- No double booking: every booking runs in a transaction that locks the room row (`SELECT ... FOR UPDATE`) and checks for overlapping `pending`/`confirmed` bookings.
+- No double booking (also enforced inside MySQL by triggers in `server/database/triggers.sql`): every booking runs in a transaction that locks the room row (`SELECT ... FOR UPDATE`) and checks for overlapping `pending`/`confirmed` bookings.
 - Dates: check-in cannot be in the past, check-out must be after check-in, max stay `MAX_STAY_NIGHTS` (default 30), up to 365 days in advance. Guests cannot exceed room capacity.
 - Customer cancellation: 2+ days before check-in = 100% refund; 1 day before = 50% refund; on/after the check-in day = not allowed online. Administrators can cancel any non-checked-in booking with a full refund.
 - Payment: **simulated only** (see below). Revenue = payments with status `success` or `partially_refunded`, net of refunds.
@@ -69,9 +73,10 @@ hotel-reservation-system/
 |   |   |-- app.js, server.js
 |   |-- scripts/setup-db.js  creates schema, seed data, demo accounts
 |   |-- package.json, .env.example
-|-- database/
-|   |-- schema.sql           tables, keys, indexes, constraints
-|   |-- seed.sql             amenities, room types, 12 rooms, reviews
+|-- server/database/
+|   |-- schema.sql           tables, keys, indexes, constraints (hotels, rooms, bookings ...)
+|   |-- seed.sql             amenities, room types, 36 hotels in 12 cities, 288 rooms, reviews
+|   |-- triggers.sql         double-booking triggers + v_room_bookings view
 |-- docs/
 |   |-- API_DOCUMENTATION.md
 |   |-- DATABASE_DESIGN.md
@@ -109,8 +114,9 @@ The client needs no configuration in development (Vite proxies `/api` to `http:/
 
 ### 4. Create the database
 ```powershell
-npm run db:setup
+npm run db:reset
 ```
+(Use `db:reset` the first time after updating to this version: the schema now has a `hotels` table, so the old database must be rebuilt.)
 This applies `database/schema.sql`, loads `database/seed.sql`, creates the demo accounts with **bcrypt-hashed** passwords, and adds a few sample reservations for the demo guest. It is safe to re-run (it skips data that already exists). To wipe and rebuild everything: `npm run db:reset`.
 
 Prefer the MySQL command line? You can run `mysql -u root -p < database\schema.sql` and `mysql -u root -p hotel_reservation < database\seed.sql`, but you must still run `npm run db:setup` once to create the demo accounts.

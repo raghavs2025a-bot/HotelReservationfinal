@@ -1,13 +1,15 @@
 import { query, q } from '../config/db.js';
 
 export const BOOKING_SELECT = `
-  SELECT b.*, r.name AS room_name, r.room_number, r.image_url AS room_image, rt.name AS category,
+  SELECT b.*, r.name AS room_name, r.room_number, r.floor_no, r.image_url AS room_image, rt.name AS category,
+         h.id AS hotel_id, h.name AS hotel_name, h.city AS hotel_city, h.country AS hotel_country, h.address AS hotel_address,
          u.name AS customer_name, u.email AS customer_email,
          p.status AS payment_status, p.method AS payment_method, p.amount AS payment_amount,
          p.refunded_amount, p.transaction_ref, p.is_simulated, p.paid_at
   FROM bookings b
   JOIN rooms r ON r.id = b.room_id
   JOIN room_types rt ON rt.id = r.room_type_id
+  JOIN hotels h ON h.id = r.hotel_id
   JOIN users u ON u.id = b.user_id
   LEFT JOIN payments p ON p.booking_id = b.id`;
 
@@ -18,9 +20,9 @@ export async function adminList(f) {
   const where = ['1 = 1'];
   const params = [];
   if (f.search) {
-    where.push('(b.reference LIKE ? OR b.guest_name LIKE ? OR b.guest_email LIKE ? OR r.name LIKE ? OR r.room_number LIKE ?)');
+    where.push('(b.reference LIKE ? OR b.guest_name LIKE ? OR b.guest_email LIKE ? OR r.name LIKE ? OR r.room_number LIKE ? OR h.name LIKE ? OR h.city LIKE ?)');
     const s = `%${f.search}%`;
-    params.push(s, s, s, s, s);
+    params.push(s, s, s, s, s, s, s);
   }
   if (f.status) { where.push('b.status = ?'); params.push(f.status); }
   if (f.stayStatus) { where.push('b.stay_status = ?'); params.push(f.stayStatus); }

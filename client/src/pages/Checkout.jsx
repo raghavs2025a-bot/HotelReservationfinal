@@ -116,7 +116,7 @@ export default function Checkout() {
           </label>
           {errors.agree && <span className="field-error">{errors.agree}</span>}
 
-          <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy || (quote && !quote.available)}>
+          <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy || !quote || !quote.available}>
             {busy ? <><Loader2 className="spin" size={18} /> Processing...</> : 'Confirm reservation'}
           </button>
         </form>
@@ -130,6 +130,10 @@ export default function Checkout() {
               <SmartImage className="summary-img" src={quote.room.image_url} alt={quote.room.name} />
               <h3>{quote.room.name}</h3>
               <p className="muted">{quote.room.category}</p>
+              <dl className="summary-list">
+                <div><dt>Hotel</dt><dd>{quote.room.hotel_name}, {quote.room.city}</dd></div>
+                <div><dt>Room number</dt><dd><strong>Room {quote.room.room_number}</strong>{quote.room.floor_no !== null && <> (floor {quote.room.floor_no})</>}</dd></div>
+              </dl>
               <dl className="summary-list">
                 <div><dt>Check-in</dt><dd>{formatDateLong(quote.checkIn)}</dd></div>
                 <div><dt>Check-out</dt><dd>{formatDateLong(quote.checkOut)}</dd></div>

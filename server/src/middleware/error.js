@@ -15,6 +15,9 @@ export function errorHandler(err, _req, res, _next) {
   if (err.code === 'ER_DUP_ENTRY') {
     status = 409;
     message = 'A record with the same unique value already exists.';
+  } else if (err.code === 'ER_SIGNAL_EXCEPTION' && /ROOM_ALREADY_BOOKED/.test(err.message || '')) {
+    status = 409;
+    message = 'This room is already booked for the selected dates.';
   } else if (err.type === 'entity.parse.failed') {
     status = 400;
     message = 'Malformed JSON request body.';

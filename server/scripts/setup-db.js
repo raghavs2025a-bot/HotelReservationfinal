@@ -15,11 +15,16 @@ import { calculatePrice } from '../src/services/pricing.service.js';
 import { addDays, todayStr } from '../src/utils/dates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbDir = path.resolve(__dirname, '../../database');
+// SQL files live in server/database (a copy in <project>/database is also accepted).
+const dbDir = [path.resolve(__dirname, '../database'), path.resolve(__dirname, '../../database')]
+  .find((d) => fs.existsSync(path.join(d, 'schema.sql')));
+if (!dbDir) { console.error('Could not find schema.sql in server/database or database/'); process.exit(1); }
 const DB = config.db.database;
 const reset = process.argv.includes('--reset');
 
 const readSql = (file) => fs.readFileSync(path.join(dbDir, file), 'utf8').replace(/hotel_reservation/g, DB);
+// triggers.sql uses DELIMITER (needed by the mysql CLI only); the driver sends the statements as they are.
+const readTriggerSql = () => readSql('triggers.sql').replace(/^DELIMITER .*$/gm, '').replace(/\$\$/g, ';');
 
 async function main() {
   const conn = await mysql.createConnection({
@@ -36,6 +41,13 @@ async function main() {
   await conn.query(readSql('schema.sql'));
   await conn.query(`USE \`${DB}\``);
 
+  // Older databases (single hotel table-less layout) cannot be upgraded in place.
+  const [hotelCols] = await conn.query("SHOW COLUMNS FROM rooms LIKE 'hotel_id'");
+  if (hotelCols.length === 0) {
+    console.error('\nThis database was created with the OLD schema (no hotels table). Run:  npm run db:reset');
+    process.exit(1);
+  }
+
   const [[{ n: roomCount }]] = await conn.query('SELECT COUNT(*) AS n FROM rooms');
   if (roomCount === 0) {
     console.log('Loading seed.sql ...');
@@ -43,6 +55,9 @@ async function main() {
   } else {
     console.log(`Rooms already present (${roomCount}); skipping seed.sql.`);
   }
+
+  console.log('Applying triggers.sql (double-booking protection + v_room_bookings view) ...');
+  await conn.query(readTriggerSql());
 
   const demoUsers = [
     { name: 'StayEase Admin', email: config.demo.adminEmail, phone: '+919800000001', password: config.demo.adminPassword, role: 'admin' },
@@ -70,7 +85,8 @@ async function main() {
     ];
     let n = 0;
     for (const s of samples) {
-      const [[room]] = await conn.execute('SELECT id, price_per_night FROM rooms WHERE room_number = ?', [s.room]);
+      // Room numbers repeat across hotels, so pin the sample bookings to the first hotel (Chennai).
+      const [[room]] = await conn.execute('SELECT id, price_per_night FROM rooms WHERE hotel_id = 1 AND room_number = ?', [s.room]);
       if (!room) continue;
       const checkIn = addDays(today, s.offset);
       const checkOut = addDays(checkIn, s.nights);

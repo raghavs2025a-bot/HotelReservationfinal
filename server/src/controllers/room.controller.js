@@ -11,6 +11,8 @@ export const list = asyncHandler(async (req, res) => {
   const f = {
     guests: optNum(req.query.guests),
     typeId: optNum(req.query.category),
+    location: typeof req.query.location === 'string' ? req.query.location.trim().slice(0, 80) : '',
+    hotelId: optNum(req.query.hotel),
     minPrice: optNum(req.query.minPrice),
     maxPrice: optNum(req.query.maxPrice),
     search: typeof req.query.search === 'string' ? req.query.search.trim().slice(0, 80) : '',
@@ -30,7 +32,10 @@ export const list = asyncHandler(async (req, res) => {
 });
 
 export const featured = asyncHandler(async (_req, res) => res.json({ success: true, rooms: await Room.getFeatured(6) }));
-export const meta = asyncHandler(async (_req, res) => res.json({ success: true, ...(await Room.getMeta()) }));
+export const meta = asyncHandler(async (req, res) => {
+  const city = typeof req.query.location === 'string' ? req.query.location.trim().slice(0, 80) : '';
+  res.json({ success: true, ...(await Room.getMeta(city)) });
+});
 export const testimonials = asyncHandler(async (_req, res) => res.json({ success: true, testimonials: await Room.getTestimonials() }));
 
 export const detail = asyncHandler(async (req, res) => {

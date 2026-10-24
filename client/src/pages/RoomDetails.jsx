@@ -81,6 +81,7 @@ export default function RoomDetails() {
           <div className="details-head">
             <span className="chip chip-gold">{room.category}</span>
             <h1>{room.name}</h1>
+            <p className="room-hotel room-hotel-lg"><strong>{room.hotel_name}</strong>, {room.city}, {room.country} &middot; <strong>Room No. {room.room_number}</strong></p>
             <ul className="room-meta room-meta-lg">
               <li><Users size={18} aria-hidden="true" /> Up to {room.capacity} guests</li>
               <li><BedDouble size={18} aria-hidden="true" /> {room.bed_type}</li>
@@ -94,7 +95,7 @@ export default function RoomDetails() {
           <ul className="facility-grid">
             {room.amenities.map((a) => <li key={a.id}><AmenityIcon name={a.icon} size={20} /> {a.name}</li>)}
           </ul>
-          <h2 className="h3">Booked dates</h2>
+          <h2 className="h3">Booked dates for Room {room.room_number}</h2>
           {bookedRanges.length === 0 ? <p className="muted">This room currently has no upcoming reservations.</p> : (
             <ul className="booked-list">{bookedRanges.map((r, i) => <li key={i}>{formatDate(r.check_in)} &rarr; {formatDate(r.check_out)}</li>)}</ul>
           )}

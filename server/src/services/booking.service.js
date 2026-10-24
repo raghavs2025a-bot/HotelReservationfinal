@@ -49,14 +49,12 @@ export async function quote(body) {
   if (room.operational_status !== 'available') { available = false; reason = 'This room is temporarily unavailable.'; }
   else if (s.guests > room.capacity) { available = false; reason = `This room sleeps up to ${room.capacity} guests.`; }
   else {
-    const rows = await query(
-      `SELECT id FROM bookings WHERE room_id = ? AND status IN ('pending','confirmed') AND check_in < ? AND check_out > ? LIMIT 1`,
-      [room.id, s.checkOut, s.checkIn]
-    );
-    if (rows.length) { available = false; reason = 'This room is already booked for the selected dates.'; }
+    const clash = await Room.findOverlap(null, room.id, s.checkIn, s.checkOut);
+    if (clash) { available = false; reason = `Room ${room.room_number} is already booked from ${clash.check_in} to ${clash.check_out}. Please pick other dates or another room.`; }
   }
   return { ...price, checkIn: s.checkIn, checkOut: s.checkOut, guests: s.guests, available, reason,
-    room: { id: room.id, name: room.name, category: room.category, capacity: room.capacity, image_url: room.image_url } };
+    room: { id: room.id, name: room.name, category: room.category, capacity: room.capacity, image_url: room.image_url,
+      room_number: room.room_number, floor_no: room.floor_no, hotel_name: room.hotel_name, city: room.city } };
 }
 
 export async function createBooking(user, body) {
@@ -79,8 +77,9 @@ export async function createBooking(user, body) {
     if (!room || !room.is_active) throw new AppError(404, 'Room not found.');
     if (room.operational_status !== 'available') throw new AppError(409, 'This room is temporarily unavailable.');
     if (s.guests > room.capacity) throw new AppError(400, `This room sleeps up to ${room.capacity} guests.`);
-    if (await Room.hasOverlap(conn, room.id, s.checkIn, s.checkOut)) {
-      throw new AppError(409, 'Sorry, this room was just booked for the selected dates. Please choose different dates or another room.');
+    const clash = await Room.findOverlap(conn, room.id, s.checkIn, s.checkOut);
+    if (clash) {
+      throw new AppError(409, `Room ${room.room_number} is already booked from ${clash.check_in} to ${clash.check_out}. It cannot be booked again for these dates - please choose different dates or another room.`);
     }
     const price = calculatePrice(Number(room.price_per_night), s.nights);
     const simulatedPaid = paymentMethod === 'simulated_card';
@@ -97,6 +96,9 @@ export async function createBooking(user, body) {
           status: simulatedPaid ? 'confirmed' : 'pending',
         });
       } catch (err) {
+        if (err.code === 'ER_SIGNAL_EXCEPTION' || /ROOM_ALREADY_BOOKED/.test(err.message || '')) {
+          throw new AppError(409, `Room ${room.room_number} is already booked for the selected dates. Please choose different dates or another room.`);
+        }
         if (err.code !== 'ER_DUP_ENTRY') throw err;
       }
     }

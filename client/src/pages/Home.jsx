@@ -6,6 +6,7 @@ import AmenityIcon from '../components/AmenityIcon.jsx';
 import { ErrorState, Loader } from '../components/feedback.jsx';
 import useFetch from '../hooks/useFetch.js';
 import { roomService } from '../services/index.js';
+import { formatINR } from '../utils/format.js';
 
 const HERO = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2000&q=80';
 const INTRO = 'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=1200&q=80';
@@ -19,7 +20,7 @@ export default function Home() {
     <>
       <section className="hero" style={{ backgroundImage: `linear-gradient(180deg, rgba(10,25,45,.72), rgba(10,25,45,.55) 55%, rgba(10,25,45,.85)), url(${HERO})` }}>
         <div className="container hero-inner">
-          <p className="eyebrow">Chennai &middot; Since 1998</p>
+          <p className="eyebrow">12 cities &middot; 36 hotels &middot; Since 1998</p>
           <h1>Stay somewhere <em>unforgettable</em></h1>
           <p className="hero-sub">Elegant rooms, warm hospitality and instant confirmation. Book directly with StayEase for the best available rates.</p>
           <SearchBar variant="hero" />
@@ -39,6 +40,26 @@ export default function Home() {
           <Link to="/rooms" className="btn btn-primary">Explore all rooms <ArrowRight size={18} aria-hidden="true" /></Link>
         </div>
         <div className="intro-media"><img src={INTRO} alt="Resort pool at StayEase" loading="lazy" /><div className="intro-badge"><Sparkles size={18} aria-hidden="true" /> Rated 4.8 by our guests</div></div>
+      </section>
+
+      <section className="section container" id="cities">
+        <div className="section-head">
+          <p className="eyebrow eyebrow-dark">Destinations</p>
+          <h2>Browse hotels by city</h2>
+        </div>
+        {meta.data && (
+          <ul className="city-grid">
+            {meta.data.cities.map((c) => (
+              <li key={c.city}>
+                <Link to={`/rooms?location=${encodeURIComponent(c.city)}`} className="city-card">
+                  <strong>{c.city}</strong>
+                  <span>{c.hotels} hotels &middot; {c.rooms} rooms</span>
+                  <em>from {formatINR(c.min_price)} / night</em>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="section section-warm">

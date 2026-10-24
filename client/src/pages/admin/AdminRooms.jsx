@@ -10,7 +10,7 @@ import { useToast } from '../../context/ToastContext.jsx';
 import { adminService } from '../../services/index.js';
 import { errorMessage, fieldErrors, formatINR } from '../../utils/format.js';
 
-const EMPTY = { roomNumber: '', name: '', roomTypeId: '', description: '', pricePerNight: '', capacity: 2, bedType: '', sizeSqft: '', floorNo: '', imageUrl: '', gallery: '', operationalStatus: 'available', isFeatured: false, isActive: true, amenityIds: [] };
+const EMPTY = { hotelId: '', roomNumber: '', name: '', roomTypeId: '', description: '', pricePerNight: '', capacity: 2, bedType: '', sizeSqft: '', floorNo: '', imageUrl: '', gallery: '', operationalStatus: 'available', isFeatured: false, isActive: true, amenityIds: [] };
 
 export default function AdminRooms() {
   const toast = useToast();
@@ -20,6 +20,7 @@ export default function AdminRooms() {
   const dSearch = useDebounce(search);
   const rooms = useFetch(() => adminService.rooms({ search: dSearch || undefined, type: type || undefined, status: status || undefined }), [dSearch, type, status]);
   const types = useFetch(() => adminService.roomTypes(), []);
+  const hotels = useFetch(() => adminService.hotels(), []);
   const amenities = useFetch(() => adminService.amenities(), []);
   const [editing, setEditing] = useState(null); // null | 'new' | room
   const [form, setForm] = useState(EMPTY);
@@ -31,7 +32,7 @@ export default function AdminRooms() {
     if (editing === 'new') { setForm(EMPTY); } else {
       const r = editing;
       setForm({
-        roomNumber: r.room_number, name: r.name, roomTypeId: r.room_type_id, description: r.description || '', pricePerNight: r.price_per_night, capacity: r.capacity,
+        hotelId: r.hotel_id, roomNumber: r.room_number, name: r.name, roomTypeId: r.room_type_id, description: r.description || '', pricePerNight: r.price_per_night, capacity: r.capacity,
         bedType: r.bed_type, sizeSqft: r.size_sqft ?? '', floorNo: r.floor_no ?? '', imageUrl: r.image_url || '', gallery: (r.gallery || []).filter((g) => g !== r.image_url).join('\n'),
         operationalStatus: r.operational_status, isFeatured: Boolean(r.is_featured), isActive: Boolean(r.is_active), amenityIds: r.amenities.map((a) => a.id),
       });
@@ -47,7 +48,7 @@ export default function AdminRooms() {
     setBusy(true);
     setErrors({});
     try {
-      const body = { ...form, roomTypeId: Number(form.roomTypeId), gallery: form.gallery.split('\n') };
+      const body = { ...form, hotelId: Number(form.hotelId), roomTypeId: Number(form.roomTypeId), gallery: form.gallery.split('\n') };
       if (editing === 'new') await adminService.createRoom(body); else await adminService.updateRoom(editing.id, body);
       toast.success(editing === 'new' ? 'Room created.' : 'Room updated.');
       setEditing(null);
@@ -93,7 +94,7 @@ export default function AdminRooms() {
             <tbody>
               {rooms.data.rooms.map((r) => (
                 <tr key={r.id} className={r.is_active ? '' : 'row-muted'}>
-                  <td data-label="Room"><div className="cell-room"><SmartImage src={r.image_url} alt="" /><div><strong>{r.name}</strong><small>#{r.room_number}</small></div></div></td>
+                  <td data-label="Room"><div className="cell-room"><SmartImage src={r.image_url} alt="" /><div><strong>{r.name}</strong><small>Room {r.room_number} &middot; {r.hotel_name}, {r.city}</small></div></div></td>
                   <td data-label="Type">{r.category}</td>
                   <td data-label="Price">{formatINR(r.price_per_night)}</td>
                   <td data-label="Capacity">{r.capacity}</td>
@@ -117,12 +118,14 @@ export default function AdminRooms() {
       )}
 
       {editing && (
-        <Modal wide title={editing === 'new' ? 'Add room' : `Edit room #${editing.room_number}`} onClose={() => !busy && setEditing(null)}
+        <Modal wide title={editing === 'new' ? 'Add room' : `Edit room ${editing.room_number} (${editing.hotel_name}, ${editing.city})`} onClose={() => !busy && setEditing(null)}
           footer={<>
             <button type="button" className="btn btn-outline" onClick={() => setEditing(null)} disabled={busy}>Cancel</button>
             <button type="submit" form="room-form" className="btn btn-primary" disabled={busy}>{busy && <Loader2 className="spin" size={16} />} Save room</button>
           </>}>
           <form id="room-form" onSubmit={save} noValidate className="form-grid">
+            <div className="field span-2"><label htmlFor="rf-hotel">Hotel</label>
+              <select id="rf-hotel" value={form.hotelId} onChange={set('hotelId')}><option value="">Select hotel</option>{hotels.data?.hotels.map((h) => <option key={h.id} value={h.id}>{h.city} - {h.name}</option>)}</select>{err('hotelId')}</div>
             <div className="field"><label htmlFor="rf-no">Room number</label><input id="rf-no" value={form.roomNumber} onChange={set('roomNumber')} />{err('roomNumber')}</div>
             <div className="field"><label htmlFor="rf-name">Name</label><input id="rf-name" value={form.name} onChange={set('name')} />{err('name')}</div>
             <div className="field"><label htmlFor="rf-type">Room type</label>

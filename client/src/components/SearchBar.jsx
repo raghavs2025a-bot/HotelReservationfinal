@@ -7,22 +7,24 @@ import { addDaysISO, todayISO } from '../utils/format.js';
 export default function SearchBar({ initial = {}, variant = 'hero', onSearch }) {
   const navigate = useNavigate();
   const [types, setTypes] = useState([]);
+  const [cities, setCities] = useState([]);
   const [form, setForm] = useState({
     checkIn: initial.checkIn || '',
     checkOut: initial.checkOut || '',
     guests: initial.guests || '2',
     category: initial.category || '',
+    location: initial.location || '',
   });
   const [error, setError] = useState('');
   const today = todayISO();
 
   useEffect(() => {
-    roomService.meta().then((r) => setTypes(r.types)).catch(() => setTypes([]));
+    roomService.meta().then((r) => { setTypes(r.types); setCities(r.cities || []); }).catch(() => { setTypes([]); setCities([]); });
   }, []);
 
   useEffect(() => {
-    setForm((f) => ({ ...f, checkIn: initial.checkIn || '', checkOut: initial.checkOut || '', guests: initial.guests || f.guests, category: initial.category || '' }));
-  }, [initial.checkIn, initial.checkOut, initial.guests, initial.category]);
+    setForm((f) => ({ ...f, checkIn: initial.checkIn || '', checkOut: initial.checkOut || '', guests: initial.guests || f.guests, category: initial.category || '', location: initial.location || '' }));
+  }, [initial.checkIn, initial.checkOut, initial.guests, initial.category, initial.location]);
 
   const set = (k) => (e) => {
     const value = e.target.value;
@@ -47,6 +49,13 @@ export default function SearchBar({ initial = {}, variant = 'hero', onSearch }) 
 
   return (
     <form className={`search-bar search-bar-${variant}`} onSubmit={submit} noValidate>
+      <div className="field">
+        <label htmlFor="sb-city">City</label>
+        <select id="sb-city" value={form.location} onChange={set('location')}>
+          <option value="">All cities</option>
+          {cities.map((c) => <option key={c.city} value={c.city}>{c.city}</option>)}
+        </select>
+      </div>
       <div className="field">
         <label htmlFor="sb-in">Check-in</label>
         <input id="sb-in" type="date" min={today} value={form.checkIn} onChange={set('checkIn')} />

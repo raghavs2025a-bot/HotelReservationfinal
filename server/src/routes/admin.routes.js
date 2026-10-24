@@ -14,6 +14,7 @@ router.post('/rooms', C.createRoom);
 router.put('/rooms/:id', C.updateRoom);
 router.patch('/rooms/:id/active', C.setRoomActive);
 
+router.get('/hotels', C.listHotels);
 router.get('/room-types', C.listTypes);
 router.post('/room-types', C.createType);
 router.put('/room-types/:id', C.updateType);

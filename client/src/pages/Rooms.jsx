@@ -9,21 +9,21 @@ import useDebounce from '../hooks/useDebounce.js';
 import { roomService } from '../services/index.js';
 import { formatINR, nightsBetween } from '../utils/format.js';
 
-const DEFAULT_FILTERS = { maxPrice: '', capacity: '', amenities: [], sort: 'recommended', onlyAvailable: false, text: '', location: '' };
-
-const CITIES = ['Chennai', 'Mumbai', 'Bangalore', 'Delhi', 'Dubai', 'Bangkok', 'Singapore', 'Tokyo', 'Bali', 'Paris', 'New York', 'Sydney'];
+const DEFAULT_FILTERS = { maxPrice: '', capacity: '', amenities: [], sort: 'recommended', onlyAvailable: false, text: '', hotel: '' };
 
 export default function Rooms() {
   const [sp, setSp] = useSearchParams();
-  const search = { checkIn: sp.get('checkIn') || '', checkOut: sp.get('checkOut') || '', guests: sp.get('guests') || '', category: sp.get('category') || '' };
+  const search = { checkIn: sp.get('checkIn') || '', checkOut: sp.get('checkOut') || '', guests: sp.get('guests') || '', category: sp.get('category') || '', location: sp.get('location') || '' };
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
-  const meta = useFetch(() => roomService.meta(), []);
+  // Price range and hotel list follow the selected city, so every city shows its own prices.
+  const meta = useFetch(() => roomService.meta(search.location ? { location: search.location } : undefined), [search.location]);
   const debounced = useDebounce(filters, 300);
 
+  // New city -> reset the price slider to that city's range and forget the previous city's hotel.
   useEffect(() => {
-    if (meta.data && filters.maxPrice === '') setFilters((f) => ({ ...f, maxPrice: String(meta.data.price.max_price) }));
-  }, [meta.data]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (meta.data) setFilters((f) => ({ ...f, maxPrice: String(meta.data.price.max_price), hotel: '' }));
+  }, [meta.data]);
 
   const params = useMemo(() => {
     const p = {};
@@ -31,14 +31,15 @@ export default function Rooms() {
     const guests = Math.max(Number(search.guests) || 0, Number(debounced.capacity) || 0);
     if (guests) p.guests = guests;
     if (search.category) p.category = search.category;
-    if (debounced.location) p.location = debounced.location;
+    if (search.location) p.location = search.location;
+    if (debounced.hotel) p.hotel = debounced.hotel;
     if (debounced.maxPrice && meta.data && Number(debounced.maxPrice) < meta.data.price.max_price) p.maxPrice = debounced.maxPrice;
     if (debounced.amenities.length) p.amenities = debounced.amenities.join(',');
     if (debounced.text.trim()) p.search = debounced.text.trim();
     if (debounced.sort !== 'recommended') p.sort = debounced.sort;
     if (debounced.onlyAvailable) p.onlyAvailable = true;
     return p;
-  }, [search.checkIn, search.checkOut, search.guests, search.category, debounced, meta.data]);
+  }, [search.checkIn, search.checkOut, search.guests, search.category, search.location, debounced, meta.data]);
 
   const rooms = useFetch(() => roomService.list(params), [JSON.stringify(params)]);
 
@@ -70,12 +71,10 @@ export default function Rooms() {
           <div className="filters-head"><h2>Filters</h2><button type="button" className="link-btn" onClick={reset}><RotateCcw size={14} /> Reset</button></div>
 
           <div className="field">
-            <label htmlFor="f-location">City</label>
-            <select id="f-location" value={filters.location} onChange={(e) => setFilter('location', e.target.value)}>
-              <option value="">All cities</option>
-              {CITIES.map((city) => (
-                <option key={city} value={city}>{city}</option>
-              ))}
+            <label htmlFor="f-hotel">Hotel{search.location ? ` in ${search.location}` : ''}</label>
+            <select id="f-hotel" value={filters.hotel} onChange={(e) => setFilter('hotel', e.target.value)}>
+              <option value="">All hotels</option>
+              {m?.hotels.map((h) => <option key={h.id} value={h.id}>{h.name}{search.location ? '' : ` (${h.city})`}</option>)}
             </select>
           </div>
 
@@ -122,7 +121,7 @@ export default function Rooms() {
 
         <section aria-live="polite">
           <div className="results-head">
-            <p>{rooms.data ? <><strong>{rooms.data.count}</strong> {rooms.data.count === 1 ? 'room' : 'rooms'} found</> : 'Searching...'}{nights > 0 && <> &middot; {nights} {nights === 1 ? 'night' : 'nights'}</>}</p>
+            <p>{rooms.data ? <><strong>{rooms.data.count}</strong> {rooms.data.count === 1 ? 'room' : 'rooms'} found{search.location && <> in <strong>{search.location}</strong></>}</> : 'Searching...'}{nights > 0 && <> &middot; {nights} {nights === 1 ? 'night' : 'nights'}</>}</p>
           </div>
           {rooms.loading && <Loader label="Finding rooms..." />}
           {rooms.error && <ErrorState message={rooms.error} onRetry={rooms.reload} />}
